@@ -37,14 +37,14 @@ neib_vox_vec = np.empty((num_vox, 1), dtype = object)
     
 for v in range(num_vox):
     t = 0
-    tmp_neib_vox = np.zeros([26, 3])
-    tmp_neib_vec = np.zeros([26, 3])
+    tmp_neib_vox = np.zeros([27, 3])
+    tmp_neib_vec = np.zeros([27, 3])
     for a in range(-1, 2):
         for b in range(-1, 2):
             for c in range(-1, 2):
                 if t == 13: # python不允許分母為0的除法，所以要避掉seed voxel
-                    # tmp_neib_vox[t, :] = [0, 0, 0]
-                    # tmp_neib_vec[t, :] = [0, 0, 0]
+                    tmp_neib_vox[t, :] = [0, 0, 0]
+                    tmp_neib_vec[t, :] = [0, 0, 0]
                     t += 1
                 else:
                     tmp_neib_vox[t, :] = [vox_x[v] + a, vox_y[v] + b, vox_z[v] + c]
@@ -52,16 +52,18 @@ for v in range(num_vox):
                     tmp_neib_vec[t, :] = [a / tmp_sqr, b / tmp_sqr, c / tmp_sqr]
 
                     t += 1
-    # tmp_neib_vox = np.delete(tmp_neib_vox, (13), axis = 0)
-    # tmp_neib_vec = np.delete(tmp_neib_vec, (13), axis = 0)
+    tmp_neib_vox = np.delete(tmp_neib_vox, (13), axis = 0)
+    tmp_neib_vec = np.delete(tmp_neib_vec, (13), axis = 0)
     
     vox_neib_xyz[v, 0] = tmp_neib_vox
     neib_vox_vec[v, 0] = tmp_neib_vec
 # =============================================================================
 
+
 num_vox = np.size(vox_xyz, 0) # fun_tensor2_Zac 7
 sub_nii = nib.load("C:\\Users\\linda\\Desktop\\Funtensor_code\\MRN_002sregressedglobal_and_filtered_FunImg_2mmstd_func_tensor2_fisherz_fsl.nii.gz")
 rest = sub_nii.get_fdata() # fun_tensor2_Zac 12
+
 
 # =============================================================================
 # NeibCor2.m
@@ -77,7 +79,7 @@ tc = np.empty((1, 6), dtype = float)
 for i in range(n_vox): # 0 - 236839
     tmp_rest = rest
     # tc = np.empty((num_vox, 1), dtype = object) #num_vox要改～
-    tc = np.squeeze(tmp_rest[vox_x[i], vox_y[i], vox_z[i], :]) # 之後可以把int刪掉
+    tc = np.squeeze(tmp_rest[vox_x[i], vox_y[i], vox_z[i], :])
     if np.sum(tc == 0) == n_len:
         continue
     for j in range(26):
@@ -92,21 +94,80 @@ for i in range(n_vox): # 0 - 236839
 # =============================================================================
 
 
+
 # =============================================================================
 # fisherz.m 
 # =============================================================================
 def fisherz(neib_correlation):
     return ((np.log(np.divide(1 + neib_correlation, 1 - neib_correlation)))/2)
 
-zneib_cor = fisherz(neib_cor) # neib_cor要用NeibCor2算完才可以得出
+zneib_cor = fisherz(neib_cor)
 # =============================================================================
 
+
 C = np.power(zneib_cor, 2) # fun_tensor2_Zac 15
-T = np.zeros([num_vox,6])
+T = np.zeros([num_vox,6]) # fun_tensor2_Zac 16
 
 
+# =============================================================================
+# dyadic_tensor_half
+# =============================================================================
+def dyadic_tensor_half(unit_vec):
+    vec_x = unit_vec[0]
+    vec_y = unit_vec[1]
+    vec_z = unit_vec[2]
+    D_tensor = np.zeros([1, 6])
+    D_tensor[0, 0] = vec_x * vec_x
+    D_tensor[0, 1] = vec_x * vec_y
+    D_tensor[0, 2] = vec_x * vec_z
+    D_tensor[0, 3] = vec_y * vec_y
+    D_tensor[0, 4] = vec_y * vec_z
+    D_tensor[0, 5] = vec_z * vec_z
+    return D_tensor
+# =============================================================================
+
+# =============================================================================
+# designM
+# =============================================================================
+def designM(n_vec):
+    Nneib = np.size(neib_vec, 0)
+    M = np.zeros([Nneib, 6])
+    for neib in range(Nneib):
+        M[neib, :] = dyadic_tensor_half(neib_vec[neib, :])
+    return M
+# =============================================================================
+
+for i in range(num_vox): # fun_tensor2_Zac 19
+    tmp_vec = neib_vox_vec
+    neib_vec = tmp_vec[i, 0]
+    M = designM(neib_vec)
+    M_transp = M.T
+    neib_C = C[i, :].T
+    tmp_T = (np.linalg.inv(M_transp.dot(M))).dot(M_transp).dot(neib_C)
+    T[i, :] = tmp_T.T
 
 
+vol1 = T[:, 0] # fun_tensor2_Zac 38
+vol2 = T[:, 3]
+vol3 = T[:, 5]
+vol4 = T[:, 1]
+vol5 = T[:, 2]
+vol6 = T[:, 4] 
+
+B = np.zeros([num_vox, 6])
+B[:, 0] = vol1 # fun_tensor2_Zac 59
+B[:, 1] = vol2
+B[:, 2] = vol3
+B[:, 3] = vol4
+B[:, 4] = vol5
+B[:, 5] = vol6
+
+B2 = np.zeros([vox_dimenx, vox_dimeny, vox_dimenz, 6])
+for n in range(num_vox):
+    B2[vox_xyz[n, 0], vox_xyz[n, 1], vox_xyz[n, 2], :] = B[n, :]
+sub_nii.img = B2 # fun_tensor2_Zac 64
+
+# 4/19從程式碼65行開始
 
 
 
