@@ -73,7 +73,7 @@ vox_y = vox_xyz[:, 1]
 vox_z = vox_xyz[:, 2]
 n_len = np.size(rest, 3) # t = 6
 n_vox = np.size(vox_xyz, 0)
-neib_cor = np.zeros([n_vox, 26]) # 6 * 26
+neib_cor = np.zeros([n_vox, 26]) # 236840 * 26
 
 tc = np.empty((1, 6), dtype = float)
 for i in range(n_vox): # 0 - 236839
@@ -99,14 +99,14 @@ for i in range(n_vox): # 0 - 236839
 # fisherz.m 
 # =============================================================================
 def fisherz(neib_correlation):
-    return ((np.log(np.divide(1 + neib_correlation, 1 - neib_correlation)))/2)
+    return ((np.log(np.divide(1 + neib_correlation, 1 - neib_correlation))) / 2)
 
 zneib_cor = fisherz(neib_cor)
 # =============================================================================
 
 
 C = np.power(zneib_cor, 2) # fun_tensor2_Zac 15
-T = np.zeros([num_vox,6]) # fun_tensor2_Zac 16
+T = np.zeros([num_vox, 6]) # 236840 * 6 # fun_tensor2_Zac 16
 
 
 # =============================================================================
@@ -130,17 +130,17 @@ def dyadic_tensor_half(unit_vec):
 # designM
 # =============================================================================
 def designM(n_vec):
-    Nneib = np.size(neib_vec, 0)
-    M = np.zeros([Nneib, 6])
+    Nneib = np.size(n_vec, 0) # 26
+    M = np.zeros([Nneib, 6]) # 26 * 6
     for neib in range(Nneib):
-        M[neib, :] = dyadic_tensor_half(neib_vec[neib, :])
+        M[neib, :] = dyadic_tensor_half(n_vec[neib, :])
     return M
 # =============================================================================
 
 for i in range(num_vox): # fun_tensor2_Zac 19
-    tmp_vec = neib_vox_vec
-    neib_vec = tmp_vec[i, 0]
-    M = designM(neib_vec)
+    tmp_vec = neib_vox_vec # 236840 * 1
+    neib_vec = tmp_vec[i, 0] # 26 * 3
+    M = designM(neib_vec) # 26 * 6
     M_transp = M.T
     neib_C = C[i, :].T
     tmp_T = (np.linalg.inv(M_transp.dot(M))).dot(M_transp).dot(neib_C)
@@ -166,8 +166,12 @@ B2 = np.zeros([vox_dimenx, vox_dimeny, vox_dimenz, 6])
 for n in range(num_vox):
     B2[vox_xyz[n, 0], vox_xyz[n, 1], vox_xyz[n, 2], :] = B[n, :]
 sub_nii.img = B2 # fun_tensor2_Zac 64
+# sub_nii.header.dime.dim(5)
+# 程式碼65、66行還沒做
 
-# 4/19從程式碼65行開始
+filename = "test.nii.gz"
+nib.save(sub_nii, filename)
+
 
 
 
