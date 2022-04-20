@@ -166,8 +166,10 @@ B2 = np.zeros([vox_dimenx, vox_dimeny, vox_dimenz, 6])
 for n in range(num_vox):
     B2[vox_xyz[n, 0], vox_xyz[n, 1], vox_xyz[n, 2], :] = B[n, :]
 sub_nii.img = B2 # fun_tensor2_Zac 64
-# sub_nii.header.dime.dim(5)
-# 程式碼65、66行還沒做
+
+raw = sub_nii.header.structarr 
+raw["dim"][4] = 6 # fun_tensor2_Zac 65
+raw["pixdim"][4] = 1 # fun_tensor2_Zac 66
 
 filename = "test.nii.gz"
 nib.save(sub_nii, filename)
