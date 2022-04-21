@@ -1,6 +1,7 @@
 import nibabel as nib 
 import numpy as np
 import math
+# import numba as nb
 
 # =============================================================================
 # Read nifti
@@ -167,16 +168,12 @@ for n in range(num_vox):
     B2[vox_xyz[n, 0], vox_xyz[n, 1], vox_xyz[n, 2], :] = B[n, :]
 sub_nii.img = B2 # fun_tensor2_Zac 64
 
-raw = sub_nii.header.structarr 
-raw["dim"][4] = 6 # fun_tensor2_Zac 65
-raw["pixdim"][4] = 1 # fun_tensor2_Zac 66
+sub_nii.header.structarr["dim"][4] = 6 # fun_tensor2_Zac 65
+sub_nii.header.structarr["pixdim"][4] = 1 # fun_tensor2_Zac 66
 
+new_sub_nii = nib.Nifti2Image(sub_nii.img, sub_nii.affine)
 filename = "test.nii.gz"
-nib.save(sub_nii, filename)
-
-
-
-
+nib.save(new_sub_nii, filename)
 
 
 
